@@ -1,5 +1,6 @@
 package sandsim
 
+import "core:fmt"
 import "core:math"
 import "core:math/rand"
 import rl "vendor:raylib"
@@ -14,8 +15,6 @@ GRAVITY :: 0.006
 NUM_PARTICLES_IN_ROW :: MAX_SCREEN_WIDTH / PARTICLE_SIZE
 NUM_PARTICLES_IN_COL :: MAX_SCREEN_HEIGHT / PARTICLE_SIZE
 TOTAL_NUM_PARTICLES :: NUM_PARTICLES_IN_ROW * NUM_PARTICLES_IN_COL
-
-SAND_COLOUR :: rl.Color{220, 177, 89, 255}
 
 input: Input
 
@@ -40,29 +39,48 @@ main :: proc() {
 }
 
 setup :: proc() {
+	ui_setup()
 }
 
 update :: proc() {
+	ui_update()
+
 	dt := rl.GetFrameTime()
 
 	if .LEFT in input.mouse.btns {
 		mouseCol := i32(input.mouse.px_pos.x / PARTICLE_SIZE)
 		mouseRow := i32(input.mouse.px_pos.y / PARTICLE_SIZE)
 		extent := i32(math.floor_f32(BRUSH_SIZE / 2))
+		// material_type := MaterialType[selected_material_idx]
 
 		for i in -extent ..= extent {
 			for j in -extent ..= extent {
-				if (rand.float32() > 0.1) {
+				if (rand.float32() > 0.05) {
 					continue
 				}
 
 				x := mouseCol + i
-				y := mouseRow
+				y := mouseRow + j
 
-				if within_cols(x) && within_rows(y) {
+				// gx = x
+				// gy = y
+
+				if within_grid(int(y) * NUM_PARTICLES_IN_ROW + int(x)) {
 					p := &grid[y * i32(NUM_PARTICLES_IN_ROW) + x]
-					p.colour = vary_colour(SAND_COLOUR)
-					p.type = .SAND
+
+					switch selected_material_idx {
+					case 1:
+						p.colour = vary_colour(SAND_COLOUR)
+						p.material = .SAND
+
+					case 2:
+						p.colour = vary_colour(WATER_COLOUR)
+						p.material = .WATER
+
+					case 3:
+						p.colour = vary_colour(WOOD_COLOUR)
+						p.material = .WOOD
+					}
 				}
 			}
 		}
@@ -76,21 +94,33 @@ update :: proc() {
 
 	#reverse for p, i in grid {
 		below := i + NUM_PARTICLES_IN_ROW
-		below_left := below - 1
-		below_right := below + 1
 
-		switch (p.type) {
+		switch (p.material) {
 		case .NONE:
 
 		case .SAND:
-			if below >= TOTAL_NUM_PARTICLES || below_left >= TOTAL_NUM_PARTICLES do break
+			below_left := below - 1
+			below_right := below + 1
+
+			if !within_grid(below) || !within_grid(below_left) || !within_grid(below_right) do break
 
 			if is_empty(below) do swap(i, below)
 			else if is_empty(below_left) do swap(i, below_left)
 			else if is_empty(below_right) do swap(i, below_right)
 
 		case .WATER:
-		// moveWater(i, ParticleType::NONE);
+			left := i - 1
+			right := i + 1
+
+			if !within_grid(below) || !within_grid(left) || !within_grid(right) do break
+
+			if is_empty(below) do swap(i, below)
+			else if is_empty(left) do swap(i, left)
+			else if is_empty(right) do swap(i, right)
+
+		case .WOOD:
+
+		case .SMOKE:
 		}
 	}
 	// }
@@ -101,7 +131,7 @@ render :: proc() {
 	rl.ClearBackground(rl.LIGHTGRAY)
 
 	for p, i in grid {
-		if (p.type != .NONE) {
+		if (p.material != .NONE) {
 			x := i32(i % NUM_PARTICLES_IN_ROW)
 			y := i32(i / NUM_PARTICLES_IN_ROW)
 			rl.DrawRectangle(
@@ -113,6 +143,17 @@ render :: proc() {
 			)
 		}
 	}
+
+	ui_draw()
+
+	// Debug
+	// rl.DrawText(
+	// 	fmt.ctprintf("x:%v\ny:%v", gx, gy),
+	// 	i32(input.mouse.px_pos.x),
+	// 	i32(input.mouse.px_pos.y),
+	// 	20,
+	// 	rl.BLACK,
+	// )
 
 	rl.EndDrawing()
 }
@@ -129,12 +170,16 @@ vary_colour :: proc(c: rl.Color) -> rl.Color {
 	return rl.ColorFromHSV(hsv.x, hsv.y, hsv.z)
 }
 
-within_cols :: proc(i: i32) -> bool {
-	return i >= 0 && i <= NUM_PARTICLES_IN_ROW
+within_grid :: proc {
+	within_grid_i,
+	within_grid_xy,
 }
 
-within_rows :: proc(i: i32) -> bool {
-	return i >= 0 && i <= NUM_PARTICLES_IN_COL
+within_grid_i :: proc(i: int) -> bool {
+	return i >= 0 && i < TOTAL_NUM_PARTICLES
+}
+within_grid_xy :: proc(x, y: int) -> bool {
+	return x >= 0 && x < NUM_PARTICLES_IN_ROW && y >= 0 && y < NUM_PARTICLES_IN_COL
 }
 
 swap :: proc(i, j: int) {
@@ -142,5 +187,5 @@ swap :: proc(i, j: int) {
 }
 
 is_empty :: proc(i: int) -> bool {
-	return grid[i].type == .NONE
+	return grid[i].material == .NONE
 }
