@@ -26,7 +26,7 @@ main :: proc() {
 	screen_width: i32 = NUM_PARTICLES_IN_ROW * PARTICLE_SIZE
 	screen_height: i32 = NUM_PARTICLES_IN_COL * PARTICLE_SIZE
 
-	rl.InitWindow(screen_width, screen_height, "Sand Simulation")
+	rl.InitWindow(screen_width, screen_height, "Material Simulation")
 	defer rl.CloseWindow()
 	rl.SetTargetFPS(500)
 	rl.SetExitKey(.ESCAPE)
@@ -64,9 +64,6 @@ update :: proc() {
 				x := mouseCol + i
 				y := mouseRow + j
 
-				// gx = x
-				// gy = y
-
 				if within_grid(int(y) * NUM_PARTICLES_IN_ROW + int(x)) {
 					p := &grid[y * i32(NUM_PARTICLES_IN_ROW) + x]
 
@@ -92,54 +89,61 @@ update :: proc() {
 		}
 	}
 
-	// static float accumulator;
-	// accumulator += dt;
-	//
-	// while (accumulator >= GRAVITY) {
-	//     accumulator -= GRAVITY;
+	for row := NUM_PARTICLES_IN_COL - 1; row >= 0; row -= 1 {
+		row_offset := row * NUM_PARTICLES_IN_ROW
+		left_to_right := rand.choice([]bool{true, false})
 
-	#reverse for p, i in grid {
-		below := i + NUM_PARTICLES_IN_ROW
-
-		switch (p.material) {
-		case .NONE:
-
-		case .SAND:
-			dir := rand.choice([]int{1, -1})
-			below_side := below + dir
-
-			if within_grid(below) && is_empty(below) do swap(i, below)
-			else if within_grid(below_side) && is_empty(below_side) do swap(i, below_side)
-
-		case .WATER:
-			dir := rand.choice([]int{1, -1})
-
-			below_a := i + dir
-			below_b := i + dir
-
-			if within_grid(below) && is_empty(below) do swap(i, below)
-			else if within_grid(below_a) && is_empty(below_a) do swap(i, below_a)
-			else if within_grid(below_b) && is_empty(below_b) do swap(i, below_b)
-
-		case .WOOD:
-
-		case .SMOKE:
-			up := i - NUM_PARTICLES_IN_ROW
-			up_left := up - 1
-			up_right := up + 1
-
-			if !within_grid(up) || !within_grid(up_left) || !within_grid(up_right) do break
-
-			dir := rand.choice([]int{1, -1})
-
-			if is_empty(up) do swap(i, up)
-			else if is_empty(up_left) do swap(i, up_left)
-			else if is_empty(up_right) do swap(i, up_right)
+		for i := 0; i < NUM_PARTICLES_IN_ROW; i += 1 {
+			col_offset := left_to_right ? i : -i - 1 + NUM_PARTICLES_IN_ROW
+			update_pixel(row_offset + col_offset)
 		}
 	}
-	// }
 
 	dbuf_grid = grid
+}
+
+update_pixel :: proc(i: int) {
+	below := i + NUM_PARTICLES_IN_ROW
+	below_left := below - 1
+	below_right := below + 1
+	col := i % NUM_PARTICLES_IN_ROW
+	p := &grid[i]
+
+	switch (p.material) {
+	case .NONE:
+
+	// case .SLIME:
+	// 	dir := rand.choice([]int{1, -1})
+	// 	below_side := below + dir
+	//
+	// 	if within_grid(below) && is_empty(below) do swap(i, below)
+	// 	else if within_grid(below_side) && is_empty(below_side) do swap(i, below_side)
+
+	case .SAND:
+		if within_grid(below) && is_empty(below) do swap(i, below)
+		else if within_grid(below_left) && is_empty(below_left) do swap(i, below_left)
+		else if within_grid(below_right) && is_empty(below_right) do swap(i, below_right)
+
+	case .WATER:
+		if within_grid(below) && is_empty(below) do swap(i, below)
+		else if within_grid(below_left) && is_empty(below_left) do swap(i, below_left)
+		else if within_grid(below_right) && is_empty(below_right) do swap(i, below_right)
+
+	case .WOOD:
+
+	case .SMOKE:
+		up := i - NUM_PARTICLES_IN_ROW
+		up_left := up - 1
+		up_right := up + 1
+
+		if !within_grid(up) || !within_grid(up_left) || !within_grid(up_right) do break
+
+		dir := rand.choice([]int{1, -1})
+
+		if is_empty(up) do swap(i, up)
+		else if is_empty(up_left) do swap(i, up_left)
+		else if is_empty(up_right) do swap(i, up_right)
+	}
 }
 
 render :: proc() {
