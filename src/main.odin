@@ -8,7 +8,7 @@ import rl "vendor:raylib"
 MAX_SCREEN_WIDTH :: 1024
 MAX_SCREEN_HEIGHT :: 768
 
-PARTICLE_SIZE :: 3
+PARTICLE_SIZE :: 2
 BRUSH_SIZE :: 10
 GRAVITY :: 0.006
 
@@ -72,19 +72,19 @@ update :: proc() {
 
 					switch selected_material_idx {
 					case 1:
-						p.colour = vary_colour(SAND_COLOUR)
+						p.colour = vary_colour(colours[.SAND])
 						p.material = .SAND
 
 					case 2:
-						p.colour = vary_colour(WATER_COLOUR)
+						p.colour = vary_colour(colours[.WATER])
 						p.material = .WATER
 
 					case 3:
-						p.colour = vary_colour(WOOD_COLOUR)
+						p.colour = vary_colour(colours[.WOOD])
 						p.material = .WOOD
 
 					case 4:
-						p.colour = vary_colour(SMOKE_COLOUR)
+						p.colour = vary_colour(colours[.SMOKE])
 						p.material = .SMOKE
 					}
 				}
@@ -105,28 +105,21 @@ update :: proc() {
 		case .NONE:
 
 		case .SAND:
-			below_left := below - 1
-			below_right := below + 1
-
-			if !within_grid(below) || !within_grid(below_left) || !within_grid(below_right) do break
-
 			dir := rand.choice([]int{1, -1})
+			below_side := below + dir
 
-			if is_empty(below) do swap(i, below)
-			else if is_empty(below_left) do swap(i, below_left)
-			else if is_empty(below_right) do swap(i, below_right)
+			if within_grid(below) && is_empty(below) do swap(i, below)
+			else if within_grid(below_side) && is_empty(below_side) do swap(i, below_side)
 
 		case .WATER:
-			left := i - 1
-			right := i + 1
-
-			if !within_grid(below) || !within_grid(left) || !within_grid(right) do break
-
 			dir := rand.choice([]int{1, -1})
 
-			if is_empty(below) do swap(i, below)
-			else if is_empty(left) do swap(i, left)
-			else if is_empty(right) do swap(i, right)
+			below_a := i + dir
+			below_b := i + dir
+
+			if within_grid(below) && is_empty(below) do swap(i, below)
+			else if within_grid(below_a) && is_empty(below_a) do swap(i, below_a)
+			else if within_grid(below_b) && is_empty(below_b) do swap(i, below_b)
 
 		case .WOOD:
 
@@ -179,18 +172,6 @@ render :: proc() {
 	// )
 
 	rl.EndDrawing()
-}
-
-vary_colour :: proc(c: rl.Color) -> rl.Color {
-	hsv := rl.ColorToHSV(c)
-	saturation := f32(rand.int_max(4) - 2) / 10
-	// Lightness
-	value := (f32(rand.int_max(3)) - 0.7) / 10
-
-	hsv.y += saturation
-	hsv.z += value
-
-	return rl.ColorFromHSV(hsv.x, hsv.y, hsv.z)
 }
 
 within_grid :: proc {
