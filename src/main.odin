@@ -1,4 +1,4 @@
-package sandsim
+package matsim
 
 import "core:fmt"
 import "core:math"
@@ -19,6 +19,8 @@ TOTAL_NUM_PARTICLES :: NUM_PARTICLES_IN_ROW * NUM_PARTICLES_IN_COL
 input: Input
 
 grid: [TOTAL_NUM_PARTICLES]Particle
+dbuf_grid: [TOTAL_NUM_PARTICLES]Particle
+brush: [BRUSH_SIZE]Particle
 
 main :: proc() {
 	screen_width: i32 = NUM_PARTICLES_IN_ROW * PARTICLE_SIZE
@@ -80,6 +82,10 @@ update :: proc() {
 					case 3:
 						p.colour = vary_colour(WOOD_COLOUR)
 						p.material = .WOOD
+
+					case 4:
+						p.colour = vary_colour(SMOKE_COLOUR)
+						p.material = .SMOKE
 					}
 				}
 			}
@@ -104,6 +110,8 @@ update :: proc() {
 
 			if !within_grid(below) || !within_grid(below_left) || !within_grid(below_right) do break
 
+			dir := rand.choice([]int{1, -1})
+
 			if is_empty(below) do swap(i, below)
 			else if is_empty(below_left) do swap(i, below_left)
 			else if is_empty(below_right) do swap(i, below_right)
@@ -114,6 +122,8 @@ update :: proc() {
 
 			if !within_grid(below) || !within_grid(left) || !within_grid(right) do break
 
+			dir := rand.choice([]int{1, -1})
+
 			if is_empty(below) do swap(i, below)
 			else if is_empty(left) do swap(i, left)
 			else if is_empty(right) do swap(i, right)
@@ -121,16 +131,29 @@ update :: proc() {
 		case .WOOD:
 
 		case .SMOKE:
+			up := i - NUM_PARTICLES_IN_ROW
+			up_left := up - 1
+			up_right := up + 1
+
+			if !within_grid(up) || !within_grid(up_left) || !within_grid(up_right) do break
+
+			dir := rand.choice([]int{1, -1})
+
+			if is_empty(up) do swap(i, up)
+			else if is_empty(up_left) do swap(i, up_left)
+			else if is_empty(up_right) do swap(i, up_right)
 		}
 	}
 	// }
+
+	dbuf_grid = grid
 }
 
 render :: proc() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.LIGHTGRAY)
 
-	for p, i in grid {
+	for p, i in dbuf_grid {
 		if (p.material != .NONE) {
 			x := i32(i % NUM_PARTICLES_IN_ROW)
 			y := i32(i / NUM_PARTICLES_IN_ROW)
@@ -162,7 +185,7 @@ vary_colour :: proc(c: rl.Color) -> rl.Color {
 	hsv := rl.ColorToHSV(c)
 	saturation := f32(rand.int_max(4) - 2) / 10
 	// Lightness
-	value := f32(rand.int_max(3) - 1) / 10
+	value := (f32(rand.int_max(3)) - 0.7) / 10
 
 	hsv.y += saturation
 	hsv.z += value

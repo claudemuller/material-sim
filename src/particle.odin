@@ -1,10 +1,11 @@
-package sandsim
+package matsim
 
 import rl "vendor:raylib"
 
 SAND_COLOUR :: rl.Color{220, 177, 89, 255}
 WATER_COLOUR :: rl.Color{116, 204, 244, 255}
 WOOD_COLOUR :: rl.Color{139, 105, 20, 255}
+SMOKE_COLOUR :: rl.Color{100, 100, 100, 255}
 
 Particle :: struct {
 	material: MaterialType,

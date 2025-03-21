@@ -1,4 +1,4 @@
-package sandsim
+package matsim
 
 import rl "vendor:raylib"
 
